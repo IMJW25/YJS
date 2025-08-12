@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>Link Sharing Chat</title>
+<style>
+  body { max-width: 900px; margin: 40px auto; font-family: sans-serif; background: #e5e5e5; }
+  .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+  #linkInput { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #ccc; }
+  #sendBtn { padding: 10px 20px; background: #ffe066; border:none; border-radius: 6px; cursor: pointer; }
+  #chat { list-style: none; padding: 0; background: #fff; border-radius: 8px; }
+  #chat li { padding: 8px; border-bottom: 1px solid #ddd; }
+  .user-badge { font-weight: bold; color: rgb(4,9,71); margin-right: 8px; }
+  .secure-link { color: blue; text-decoration: underline; }
+  .meta { font-size: 0.8rem; color: #777; }
+</style>
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<h1>Excel Sync Link Sharing</h1>
+
+<div class="input-group">
+  <input id="linkInput" type="url" placeholder="https://example.com" />
+  <button id="sendBtn">Send Link</button>
+</div>
+
+<ul id="chat"></ul>
+
+<script>
+const socket = io();
+const chatEl  = document.getElementById('chat');
+const inputEl = document.getElementById('linkInput');
+const sendBtn = document.getElementById('sendBtn');
+const walletAdr = (localStorage.getItem('walletAddress') || '지갑없음').toLowerCase();
+
+function addLinkToChat({ link, wallet, time }) {
+  const li = document.createElement('li');
+  li.innerHTML = `
+    <span class="user-badge">${wallet}</span>
+    <a class="secure-link" href="${link}" target="_blank">${link}</a>
+    <div class="meta">${time}</div>
+  `;
+  chatEl.appendChild(li);
+}
+
+socket.on('initData', (links) => {
+  chatEl.innerHTML = '';
+  links.forEach(addLinkToChat);
+});
+
+socket.on('newLink', (data) => addLinkToChat(data));
+
+sendBtn.addEventListener('click', () => {
+  const url = inputEl.value.trim();
+  if (!url) return alert('URL을 입력하세요');
+  socket.emit('newLink', { link: url, wallet: walletAdr });
+  inputEl.value = '';
+});
+</script>
+</body>
+</html>
